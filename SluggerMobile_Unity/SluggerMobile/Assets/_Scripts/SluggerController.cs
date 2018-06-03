@@ -58,7 +58,9 @@ public class SluggerController : MonoBehaviour
             stickToGround(groundRayHit.point, groundRayHit.normal);
 
         if (debugMode)
-            Debug.DrawRay(groundRay.origin, groundRay.direction * awarenessRadius, Color.red, 1);
+        {
+            Debug.DrawRay(groundRay.origin, (groundRay.direction) * awarenessRadius, Color.red, 0.5f);
+        }
     }
 
     private void stickToGround(Vector2 point, Vector2 normal)
@@ -88,13 +90,6 @@ public class SluggerController : MonoBehaviour
         transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
     }
 
-    private void stickToGroundByRelDist(Vector3 relDist)
-    {
-        transform.position += relDist;
-        Vector3 groundParallel = Vector3.Cross(relDist, transform.up);
-        rotateTowardsDirection(groundParallel);
-    }
-
     private void OnTriggerStay2D(Collider2D collider)
     {
         if (GroundState == GroundState.air)
@@ -106,9 +101,9 @@ public class SluggerController : MonoBehaviour
             //Calculate radius for distance to be sticky
             float awarenessRadius = awarenessCollider.radius * transform.localScale.x;
 
-            //Get collisionDist Object between both colliders
-            Vector3 collHitDirection = GameStatics.ClosestVectorBetweenColliders(physicalCollider, collider);
+            //Get collisionDist between both colliders
             Vector3 closestHitPoint = GameStatics.ClosestPointBetweenColliders(physicalCollider, collider);
+            Vector3 collHitDirection = (closestHitPoint - transform.position).normalized;
 
             //Cast ground ray and check if hit ground
             Ray2D groundRay = new Ray2D(closestHitPoint, collHitDirection);
@@ -121,9 +116,10 @@ public class SluggerController : MonoBehaviour
             GroundState = GroundState.sticky;
 
             if (debugMode)
-                Debug.DrawRay(closestHitPoint, collHitDirection, Color.red, 3);
+                Debug.DrawRay(closestHitPoint, collHitDirection * awarenessRadius * 2, Color.yellow, 3);
 
-        } else if (behaveState == BehaveState.roll)
+        }
+        else if (behaveState == BehaveState.roll)
         {
             GroundState = GroundState.grounded;
         }
@@ -132,7 +128,7 @@ public class SluggerController : MonoBehaviour
     private void OnTriggerExit2D(Collider2D collider)
     {
         //Switch to groundMode air if exiting ground
-        if (GameStatics.IsInLayerMask(collider.gameObject.layer, GameStatics.layers["Ground"]))
+        if (LayerMask.LayerToName(collider.gameObject.layer) == "Ground")
         {
             if (GroundState == GroundState.grounded)
                 GroundState = GroundState.air;
