@@ -1,4 +1,4 @@
 sceneSetups:
-- path: Assets/Scenes/Scene_1_test.unity
+- path: Assets/_Scenes/PlatformCreator.unity
   isLoaded: 1
   isActive: 1
