@@ -5,15 +5,19 @@ using System.Collections.Generic;
 public class SluggerController : MonoBehaviour
 {
 
+    #region vars
     public bool debugMode;
-    public List<PhysicsMaterial2D> physicalBehaviors;
+    public float slideFriction;
+    public float gravityScale;
 
     private BehaveState behaveState;
     private GroundState groundState;
     private CircleCollider2D physicalCollider;
     private CircleCollider2D awarenessCollider;
     private new Rigidbody2D rigidbody;
+    #endregion
 
+    #region monobehaviours
     private void Start()
     {
         rigidbody = GetComponent<Rigidbody2D>();
@@ -36,16 +40,24 @@ public class SluggerController : MonoBehaviour
     private void FixedUpdate()
     {
         //When touching no Ground, go air mode
-        if (!awarenessCollider.IsTouchingLayers(GameStatics.layers["Ground"]))
+        if (!awarenessCollider.IsTouchingLayers(GameStatics.layers["Ground"]) && GroundState != GroundState.air)
             GroundState = GroundState.air;
 
         //Stick to Ground if in Sticky mode
         if (GroundState == GroundState.sticky)
             BeSticky();
+
+        if (GroundState == GroundState.air || GroundState == GroundState.grounded)
+            RotateTowardsDirection(rigidbody.velocity);
     }
 
+    #endregion
+
+    #region sluggerBehaviour
     private void BeSticky()
     {
+        rigidbody.velocity -= rigidbody.velocity.normalized * slideFriction;
+
         //Calculate radius for distance to be sticky
         float awarenessRadius = awarenessCollider.radius * transform.localScale.x;
 
@@ -71,7 +83,7 @@ public class SluggerController : MonoBehaviour
         rigidbody.angularVelocity = 0;
 
         //ROTATE PARALLEL TO GROUND
-        rotateTowardsDirection(groundParallel);
+        RotateTowardsDirection(groundParallel);
 
         //STICK TO GROUND POINT POSITION
         float physicalRadius = physicalCollider.radius * transform.localScale.x;
@@ -84,12 +96,35 @@ public class SluggerController : MonoBehaviour
             Debug.DrawRay(point, groundParallel * 10, Color.blue, 2);
     }
 
-    private void rotateTowardsDirection(Vector3 lookDir)
+    private void RotateTowardsDirection(Vector3 lookDir)
     {
         float angle = Mathf.Atan2(lookDir.y, lookDir.x) * Mathf.Rad2Deg - 180;
-        transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
+
+        Quaternion newRotation = Quaternion.AngleAxis(angle, Vector3.forward);
+
+        //if (Quaternion.Angle(transform.rotation, newRotation) >= 180)
+        //{
+
+        //}
+
+        transform.localRotation = newRotation;
+
+        //transform.localRotation = Quaternion.Slerp(transform.localRotation, newRotation, 0.2f);
+
     }
 
+    private int getMoveDir()
+    {
+        Vector2 relativeVelocity = transform.InverseTransformDirection(rigidbody.velocity);
+        //Get movement direction
+        if (relativeVelocity.x < 0)
+            return 1;
+        else
+            return -1;
+    }
+    #endregion
+
+    #region collissionBehaviours
     private void OnTriggerStay2D(Collider2D collider)
     {
         if (GroundState == GroundState.air)
@@ -134,17 +169,9 @@ public class SluggerController : MonoBehaviour
                 GroundState = GroundState.air;
         }
     }
+    #endregion
 
-    private int getMoveDir()
-    {
-        Vector2 relativeVelocity = transform.InverseTransformDirection(rigidbody.velocity);
-        //Get movement direction
-        if (relativeVelocity.x < 0)
-            return 1;
-        else
-            return -1;
-    }
-
+    #region getterSetters
     public BehaveState BehaveState
     {
         get
@@ -159,6 +186,8 @@ public class SluggerController : MonoBehaviour
                 Debug.Log("MOVE_state changed to: " + value + " <----- !!!!!!!");
                 behaveState = value;
             }
+
+
         }
     }
 
@@ -172,20 +201,15 @@ public class SluggerController : MonoBehaviour
             {
                 groundState = value;
                 Debug.Log("GROUND_state changed to: " + value);
+                if (value != GroundState.sticky)
+                {
+                    rigidbody.gravityScale = gravityScale;
+                } else
+                {
+                    rigidbody.gravityScale = 0;
+                }
             }
         }
     }
-}
-
-public enum BehaveState
-{
-    slide,
-    roll
-}
-
-public enum GroundState
-{
-    grounded,
-    sticky,
-    air
+    #endregion
 }

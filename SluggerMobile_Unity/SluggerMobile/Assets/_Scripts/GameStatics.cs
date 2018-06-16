@@ -37,3 +37,16 @@ public static class GameStatics {
         return collDist.pointA - collDist.pointB;
     }
 }
+
+public enum BehaveState
+{
+    slide,
+    roll
+}
+
+public enum GroundState
+{
+    grounded,
+    sticky,
+    air
+}
